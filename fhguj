@@ -1,0 +1,197 @@
+html_template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Суточный фонд времени: Динамика 2015-2025</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f7fa; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; font-size: 24px; margin-bottom: 20px; }
+        .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        select { padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; background-color: #f8fafc; cursor: pointer; outline: none; transition: border-color 0.2s; }
+        select:focus { border-color: #3b82f6; }
+        .chart-container { position: relative; height: 500px; width: 100%; margin-bottom: 40px; }
+        .insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .card h3 { margin-top: 0; color: #1e293b; font-size: 16px; }
+        .card p { margin: 5px 0 0 0; color: #475569; font-size: 14px; }
+        .val-up { color: #10b981; font-weight: bold; }
+        .val-down { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Динамика суточного фонда времени (2015 vs 2025)</h1>
+        
+        <div class="controls">
+            <select id="dayTypeSelect" onchange="updateChart()">
+                <option value="week_avg">В среднем за день недели</option>
+                <option value="weekday">Будний день</option>
+                <option value="weekend">Выходной день</option>
+            </select>
+            <select id="geoSelect" onchange="updateChart()">
+                <option value="total">Все население</option>
+                <option value="urban">Городское население</option>
+                <option value="rural">Сельское население</option>
+            </select>
+            <select id="genderSelect" onchange="updateChart()">
+                <option value="both">Оба пола</option>
+                <option value="men">Мужчины</option>
+                <option value="women">Женщины</option>
+            </select>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="timeChart"></canvas>
+        </div>
+
+        <h2>Ключевые корреляции и инсайты</h2>
+        <div class="insights">
+            <div class="card" style="border-left-color: #8b5cf6;">
+                <h3>Сдвиг гендерных ролей (Housework & Work)</h3>
+                <p>Домашнее хозяйство (Мужчины): <span class="val-up">+9 мин</span><br>
+                Домашнее хозяйство (Женщины): <span class="val-down">-24 мин</span><br>
+                Гендерный разрыв в домашней работе сократился на <strong>33 минуты</strong>.
+                Сильная корреляция дельты домашней работы с мужским полом (+0.99).</p>
+            </div>
+            <div class="card" style="border-left-color: #10b981;">
+                <h3>Больше заботы о себе, меньше отдыха</h3>
+                <p>«Личный уход» (сон, еда, гигиена) вырос у всех в среднем на <span class="val-up">+32 мин</span>.<br>
+                При этом «Свободное время» сократилось на <span class="val-down">-18 мин</span>. Общий тренд: люди спят/едят дольше, но активный отдых урезан.</p>
+            </div>
+            <div class="card" style="border-left-color: #f59e0b;">
+                <h3>Город vs Деревня (Обучение и Отдых)</h3>
+                <p>Городские жители нарастили время на обучение больше (<span class="val-up">+10 мин</span>), чем сельские (<span class="val-up">+8 мин</span>). Сельские жители потеряли больше свободного времени (<span class="val-down">-26 мин</span>), чем городские (<span class="val-down">-15 мин</span>).</p>
+            </div>
+            <div class="card" style="border-left-color: #ef4444;">
+                <h3>Работа: Мужчины стали работать меньше</h3>
+                <p>Мужчины работают на <span class="val-down">-31 мин</span> меньше в день. Женщины стали работать на <span class="val-up">+3 мин</span> дольше. Разрыв в рабочем времени сократился с 86 до 52 минут в день.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawData = DATA_PLACEHOLDER;
+        let myChart = null;
+
+        function formatMins(m) {
+            const h = Math.floor(Math.abs(m) / 60);
+            const mm = Math.floor(Math.abs(m) % 60);
+            const sign = m < 0 ? "-" : (m > 0 ? "+" : "");
+            if (h === 0) return `${sign}${mm}м`;
+            return `${sign}${h}ч ${mm}м`;
+        }
+        
+        function formatHM(m) {
+            const h = Math.floor(m / 60);
+            const mm = Math.floor(m % 60);
+            return `${h}:${mm < 10 ? '0' : ''}${mm}`;
+        }
+
+        function updateChart() {
+            const dayType = document.getElementById('dayTypeSelect').value;
+            const geo = document.getElementById('geoSelect').value;
+            const gender = document.getElementById('genderSelect').value;
+            const groupKey = `${geo}_${gender}`;
+
+            const dtData = rawData[dayType].categories.filter(c => c.name !== 'Суточный фонд времени');
+            
+            const labels = [];
+            const data2015 = [];
+            const data2025 = [];
+            const deltas = [];
+
+            dtData.forEach(cat => {
+                labels.push(cat.name);
+                const gData = cat.groups[groupKey];
+                data2015.push(gData.m_2015);
+                data2025.push(gData.m_2025);
+                deltas.push(gData.delta_m);
+            });
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '2015 (мин/сутки)',
+                            data: data2015,
+                            backgroundColor: 'rgba(148, 163, 184, 0.6)',
+                            borderColor: 'rgba(148, 163, 184, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '2025 (мин/сутки)',
+                            data: data2025,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw;
+                                    const datasetIndex = context.datasetIndex;
+                                    const delta = deltas[context.dataIndex];
+                                    let text = context.dataset.label + ': ' + formatHM(val) + ' (' + val + ' мин)';
+                                    if (datasetIndex === 1) {
+                                        text += ` | Изменение: ${formatMins(delta)}`;
+                                    }
+                                    return text;
+                                }
+                            }
+                        },
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Минуты в сутки' }
+                        },
+                        x: {
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    let label = this.getLabelForValue(value);
+                                    if (label.length > 25) {
+                                        return label.substr(0, 25) + '...';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        updateChart();
+    </script>
+</body>
+</html>
+"""
+
+import json
+json_data = json.dumps(data_export, ensure_ascii=False)
+html_output = html_template.replace("DATA_PLACEHOLDER", json_data)
+
+# Because output size might be large, I will save it as a file and also print the key parts.
+with open("visualizer.html", "w", encoding="utf-8") as f:
+    f.write(html_output)
+
+print("HTML generated.")
