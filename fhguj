@@ -1,46 +1,149 @@
-html_template = """
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Суточный фонд времени: Динамика 2015-2025</title>
+    <title>Бюджет времени: Динамика 2015 → 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f7fa; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; font-size: 24px; margin-bottom: 20px; }
-        .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
-        select { padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; background-color: #f8fafc; cursor: pointer; outline: none; transition: border-color 0.2s; }
-        select:focus { border-color: #3b82f6; }
-        .chart-container { position: relative; height: 500px; width: 100%; margin-bottom: 40px; }
-        .insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; }
-        .card h3 { margin-top: 0; color: #1e293b; font-size: 16px; }
-        .card p { margin: 5px 0 0 0; color: #475569; font-size: 14px; }
-        .val-up { color: #10b981; font-weight: bold; }
-        .val-down { color: #ef4444; font-weight: bold; }
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 5px;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 15px;
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        select:hover { border-color: var(--primary); }
+        select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            width: 100%;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #fdfdfd;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        h2 { font-size: 22px; margin-bottom: 20px; color: #0f172a; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+
+        .insights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+
+        .card:hover { transform: translateY(-3px); }
+        .card h3 { margin-top: 0; font-size: 17px; margin-bottom: 10px; color: #1e293b; }
+        .card p { margin: 0; color: #475569; font-size: 15px; }
+        
+        .val-up { color: var(--success); font-weight: 600; }
+        .val-down { color: var(--danger); font-weight: 600; }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; }
+            .chart-container { height: 400px; padding: 10px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Динамика суточного фонда времени (2015 vs 2025)</h1>
+        <h1>Суточный фонд времени: Динамика 2015 → 2025</h1>
+        <div class="subtitle">Интерактивный дашборд структуры использования времени населением</div>
         
         <div class="controls">
             <select id="dayTypeSelect" onchange="updateChart()">
-                <option value="week_avg">В среднем за день недели</option>
-                <option value="weekday">Будний день</option>
-                <option value="weekend">Выходной день</option>
+                <option value="avg">В среднем за день недели</option>
+                <option value="wkd">Будний день</option>
+                <option value="wke">Выходной день</option>
             </select>
             <select id="geoSelect" onchange="updateChart()">
-                <option value="total">Все население</option>
-                <option value="urban">Городское население</option>
-                <option value="rural">Сельское население</option>
-            </select>
-            <select id="genderSelect" onchange="updateChart()">
-                <option value="both">Оба пола</option>
-                <option value="men">Мужчины</option>
-                <option value="women">Женщины</option>
+                <option value="tb">Все население: Оба пола</option>
+                <option value="tm">Все население: Мужчины</option>
+                <option value="tw">Все население: Женщины</option>
+                <option disabled>──────────</option>
+                <option value="ub">Город: Оба пола</option>
+                <option value="um">Город: Мужчины</option>
+                <option value="uw">Город: Женщины</option>
+                <option disabled>──────────</option>
+                <option value="rb">Село: Оба пола</option>
+                <option value="rm">Село: Мужчины</option>
+                <option value="rw">Село: Женщины</option>
             </select>
         </div>
 
@@ -48,150 +151,169 @@ html_template = """
             <canvas id="timeChart"></canvas>
         </div>
 
-        <h2>Ключевые корреляции и инсайты</h2>
+        <h2>Аналитика и инсайты (тренды за 10 лет)</h2>
         <div class="insights">
             <div class="card" style="border-left-color: #8b5cf6;">
-                <h3>Сдвиг гендерных ролей (Housework & Work)</h3>
-                <p>Домашнее хозяйство (Мужчины): <span class="val-up">+9 мин</span><br>
-                Домашнее хозяйство (Женщины): <span class="val-down">-24 мин</span><br>
-                Гендерный разрыв в домашней работе сократился на <strong>33 минуты</strong>.
-                Сильная корреляция дельты домашней работы с мужским полом (+0.99).</p>
+                <h3>Домашнее хозяйство: Сдвиг ролей</h3>
+                <p>Мужчины стали тратить на быт больше времени (<span class="val-up">+9 мин</span>), а женщины заметно меньше (<span class="val-down">-24 мин</span>). Разрыв в домашней работе сократился на <strong>33 минуты</strong> в сутки (в будни).</p>
             </div>
             <div class="card" style="border-left-color: #10b981;">
-                <h3>Больше заботы о себе, меньше отдыха</h3>
-                <p>«Личный уход» (сон, еда, гигиена) вырос у всех в среднем на <span class="val-up">+32 мин</span>.<br>
-                При этом «Свободное время» сократилось на <span class="val-down">-18 мин</span>. Общий тренд: люди спят/едят дольше, но активный отдых урезан.</p>
+                <h3>Приоритизация личного ухода</h3>
+                <p>«Личный уход» (сон, питание, уход за собой) вырос у всех в среднем на <span class="val-up">+32 мин</span>. Однако это произошло за счёт урезания активного свободного времени (<span class="val-down">-18 мин</span>).</p>
             </div>
             <div class="card" style="border-left-color: #f59e0b;">
-                <h3>Город vs Деревня (Обучение и Отдых)</h3>
-                <p>Городские жители нарастили время на обучение больше (<span class="val-up">+10 мин</span>), чем сельские (<span class="val-up">+8 мин</span>). Сельские жители потеряли больше свободного времени (<span class="val-down">-26 мин</span>), чем городские (<span class="val-down">-15 мин</span>).</p>
+                <h3>Город vs Село</h3>
+                <p>Городские жители активнее нарастили время на обучение (<span class="val-up">+10 мин</span>), в то время как сельские потеряли больше свободного времени (<span class="val-down">-26 мин</span>), компенсируя его работой по дому и личным уходом.</p>
             </div>
             <div class="card" style="border-left-color: #ef4444;">
-                <h3>Работа: Мужчины стали работать меньше</h3>
-                <p>Мужчины работают на <span class="val-down">-31 мин</span> меньше в день. Женщины стали работать на <span class="val-up">+3 мин</span> дольше. Разрыв в рабочем времени сократился с 86 до 52 минут в день.</p>
+                <h3>Тенденции рабочего времени</h3>
+                <p>Мужчины работают в среднем на <span class="val-down">-31 мин</span> меньше в день (а в будни на -38 мин). Женщины стали работать на <span class="val-up">+3 мин</span> дольше. Разрыв в рабочем времени сократился с 86 до 52 минут в день.</p>
             </div>
         </div>
+        
+        <footer>
+            <p>Данные представлены в минутах на человека в сутки. «2015» — обследование 2014–2015 гг., «2025» — обследование 2024–2025 гг.</p>
+        </footer>
     </div>
 
     <script>
-        const rawData = DATA_PLACEHOLDER;
-        let myChart = null;
+        // Минифицированные сырые данные 
+        const rawData = {"avg":[{"n":"рабочее время и время, связанное с работой","d":{"tb":[226,215,-11],"tm":[278,247,-31],"tw":[192,195,3],"ub":[229,217,-12],"um":[277,245,-32],"uw":[197,199,2],"rb":[219,208,-11],"rm":[281,253,-28],"rw":[178,181,3]}},{"n":"обучение","d":{"tb":[32,42,10],"tm":[36,52,16],"tw":[29,35,6],"ub":[34,44,10],"um":[37,55,18],"uw":[31,36,5],"rb":[27,35,8],"rm":[33,43,10],"rw":[23,30,7]}},{"n":"ведение домашнего хозяйства, включая уход за членами семьи","d":{"tb":[220,210,-10],"tm":[137,146,9],"tw":[276,252,-24],"ub":[209,200,-9],"um":[128,138,10],"uw":[265,241,-24],"rb":[249,245,-4],"rm":[163,173,10],"rw":[306,289,-17]}},{"n":"свободное время","d":{"tb":[276,258,-18],"tm":[306,283,-23],"tw":[255,242,-13],"ub":[277,262,-15],"um":[310,288,-22],"uw":[255,244,-11],"rb":[272,246,-26],"rm":[296,267,-29],"rw":[256,233,-23]}},{"n":"личный уход","d":{"tb":[663,695,32],"tm":[662,694,32],"tw":[665,695,30],"ub":[667,698,31],"um":[666,697,31],"uw":[668,699,31],"rb":[653,685,32],"rm":[649,684,35],"rw":[656,685,29]}},{"n":"помощь другим домашним хозяйствам","d":{"tb":[15,13,-2],"tm":[14,12,-2],"tw":[15,13,-2],"ub":[17,13,-4],"um":[16,12,-4],"uw":[17,14,-3],"rb":[10,12,2],"rm":[9,12,3],"rw":[10,12,2]}},{"n":"другие затраты времени","d":{"tb":[8,7,-1],"tm":[7,6,-1],"tw":[8,8,0],"ub":[7,6,-1],"um":[6,5,-1],"uw":[7,7,0],"rb":[10,9,-1],"rm":[9,8,-1],"rw":[11,10,-1]}}],"wkd":[{"n":"рабочее время и время, связанное с работой","d":{"tb":[287,275,-12],"tm":[353,315,-38],"tw":[242,249,7],"ub":[294,280,-14],"um":[356,316,-40],"uw":[252,257,5],"rb":[268,258,-10],"rm":[346,312,-34],"rw":[216,225,9]}},{"n":"обучение","d":{"tb":[40,53,13],"tm":[46,67,21],"tw":[37,44,7],"ub":[42,56,14],"um":[47,71,24],"uw":[39,46,7],"rb":[35,45,10],"rm":[44,56,12],"rw":[30,39,9]}},{"n":"ведение домашнего хозяйства, включая уход за членами семьи","d":{"tb":[208,193,-15],"tm":[120,125,5],"tw":[267,237,-30],"ub":[196,182,-14],"um":[110,116,6],"uw":[255,224,-31],"rb":[240,231,-9],"rm":[148,155,7],"rw":[300,278,-22]}},{"n":"свободное время","d":{"tb":[243,230,-13],"tm":[265,251,-14],"tw":[228,217,-11],"ub":[243,233,-10],"um":[269,254,-15],"uw":[226,219,-7],"rb":[241,222,-19],"rm":[256,238,-18],"rw":[232,211,-21]}},{"n":"личный уход","d":{"tb":[643,672,29],"tm":[639,668,29],"tw":[645,674,29],"ub":[645,673,28],"um":[641,670,29],"uw":[646,676,30],"rb":[639,666,27],"rm":[632,662,30],"rw":[644,668,24]}},{"n":"помощь другим домашним хозяйствам","d":{"tb":[11,10,-1],"tm":[10,8,-2],"tw":[13,11,-2],"ub":[13,10,-3],"um":[11,8,-3],"uw":[14,11,-3],"rb":[7,9,2],"rm":[5,9,4],"rw":[8,9,1]}},{"n":"другие затраты времени","d":{"tb":[8,7,-1],"tm":[7,6,-1],"tw":[8,8,0],"ub":[7,6,-1],"um":[6,5,-1],"uw":[8,7,-1],"rb":[10,9,-1],"rm":[9,8,-1],"rw":[10,10,0]}}],"wke":[{"n":"рабочее время и время, связанное с работой","d":{"tb":[75,66,-9],"tm":[91,76,-15],"tw":[65,60,-5],"ub":[68,60,-8],"um":[80,68,-12],"uw":[58,56,-2],"rb":[97,85,-12],"rm":[119,106,-13],"rw":[82,71,-11]}},{"n":"обучение","d":{"tb":[10,12,2],"tm":[11,15,4],"tw":[9,11,2],"ub":[12,14,2],"um":[13,16,3],"uw":[11,12,1],"rb":[6,8,2],"rm":[7,9,2],"rw":[6,8,2]}},{"n":"ведение домашнего хозяйства, включая уход за членами семьи","d":{"tb":[251,253,2],"tm":[179,197,18],"tw":[297,289,-8],"ub":[242,246,4],"um":[174,191,17],"uw":[289,281,-8],"rb":[272,279,7],"rm":[199,220,21],"rw":[321,315,-6]}},{"n":"свободное время","d":{"tb":[358,327,-31],"tm":[408,365,-43],"tw":[324,302,-22],"ub":[361,333,-28],"um":[412,372,-40],"uw":[326,307,-19],"rb":[349,308,-41],"rm":[396,340,-56],"rw":[318,288,-30]}},{"n":"личный уход","d":{"tb":[715,754,39],"tm":[719,760,41],"tw":[713,750,37],"ub":[724,760,36],"um":[728,766,38],"uw":[722,756,34],"rb":[690,732,42],"rm":[692,738,46],"rw":[687,728,41]}},{"n":"помощь другим домашним хозяйствам","d":{"tb":[23,21,-2],"tm":[25,21,-4],"tw":[23,21,-2],"ub":[26,21,-5],"um":[27,22,-5],"uw":[26,21,-5],"rb":[15,19,4],"rm":[17,19,2],"rw":[14,20,6]}},{"n":"другие затраты времени","d":{"tb":[8,7,-1],"tm":[7,6,-1],"tw":[9,7,-2],"ub":[7,6,-1],"um":[6,5,-1],"uw":[8,7,-1],"rb":[11,9,-2],"rm":[10,8,-2],"rw":[12,10,-2]}}]};
 
-        function formatMins(m) {
-            const h = Math.floor(Math.abs(m) / 60);
-            const mm = Math.floor(Math.abs(m) % 60);
+        let chartInstance = null;
+
+        // Вспомогательные функции для форматирования времени
+        function formatDelta(m) {
+            const absM = Math.abs(m);
             const sign = m < 0 ? "-" : (m > 0 ? "+" : "");
-            if (h === 0) return `${sign}${mm}м`;
-            return `${sign}${h}ч ${mm}м`;
+            return `${sign}${absM}м`;
         }
         
         function formatHM(m) {
             const h = Math.floor(m / 60);
             const mm = Math.floor(m % 60);
-            return `${h}:${mm < 10 ? '0' : ''}${mm}`;
+            return `${h}ч ${mm < 10 ? '0' : ''}${mm}м`;
         }
 
+        // Обновление графика
         function updateChart() {
             const dayType = document.getElementById('dayTypeSelect').value;
-            const geo = document.getElementById('geoSelect').value;
-            const gender = document.getElementById('genderSelect').value;
-            const groupKey = `${geo}_${gender}`;
+            const geoGender = document.getElementById('geoSelect').value;
 
-            const dtData = rawData[dayType].categories.filter(c => c.name !== 'Суточный фонд времени');
+            const categoryData = rawData[dayType];
             
             const labels = [];
             const data2015 = [];
             const data2025 = [];
             const deltas = [];
 
-            dtData.forEach(cat => {
-                labels.push(cat.name);
-                const gData = cat.groups[groupKey];
-                data2015.push(gData.m_2015);
-                data2025.push(gData.m_2025);
-                deltas.push(gData.delta_m);
+            // Собираем данные
+            categoryData.forEach(cat => {
+                let name = cat.n.charAt(0).toUpperCase() + cat.n.slice(1);
+                
+                // Делаем переносы строк для длинных названий, чтобы они лучше выглядели на графике
+                if(name.includes('ведение домашнего')) {
+                    name = 'Домашнее хозяйство';
+                } else if(name.includes('рабочее время')) {
+                    name = 'Работа';
+                } else if(name.includes('помощь другим')) {
+                    name = 'Помощь другим';
+                }
+
+                labels.push(name);
+                
+                const gData = cat.d[geoGender]; // [m2015, m2025, delta]
+                data2015.push(gData[0]);
+                data2025.push(gData[1]);
+                deltas.push(gData[2]);
             });
 
-            if (myChart) {
-                myChart.destroy();
+            if (chartInstance) {
+                chartInstance.destroy();
             }
 
             const ctx = document.getElementById('timeChart').getContext('2d');
-            myChart = new Chart(ctx, {
+            
+            // Задаем глобальные шрифты для Chart.js
+            Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+            Chart.defaults.color = '#475569';
+
+            chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
                         {
-                            label: '2015 (мин/сутки)',
+                            label: '2015 год',
                             data: data2015,
-                            backgroundColor: 'rgba(148, 163, 184, 0.6)',
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
                             borderColor: 'rgba(148, 163, 184, 1)',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            borderRadius: 4
                         },
                         {
-                            label: '2025 (мин/сутки)',
+                            label: '2025 год',
                             data: data2025,
-                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.85)',
                             borderColor: 'rgba(37, 99, 235, 1)',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            borderRadius: 4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     plugins: {
                         tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            padding: 12,
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 },
                             callbacks: {
                                 label: function(context) {
                                     const val = context.raw;
-                                    const datasetIndex = context.datasetIndex;
                                     const delta = deltas[context.dataIndex];
-                                    let text = context.dataset.label + ': ' + formatHM(val) + ' (' + val + ' мин)';
-                                    if (datasetIndex === 1) {
-                                        text += ` | Изменение: ${formatMins(delta)}`;
+                                    let text = `${context.dataset.label}: ${formatHM(val)} (${val} мин)`;
+                                    
+                                    // Показываем дельту только для второго бара (2025)
+                                    if (context.datasetIndex === 1) {
+                                        text += `  [ Тренд: ${formatDelta(delta)} ]`;
                                     }
                                     return text;
                                 }
                             }
                         },
-                        legend: { position: 'top' }
+                        legend: { 
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: '500' },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            title: { display: true, text: 'Минуты в сутки' }
+                            grid: { color: '#f1f5f9' },
+                            title: { display: true, text: 'Время (минуты в сутки)', font: { size: 13 } }
                         },
                         x: {
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    let label = this.getLabelForValue(value);
-                                    if (label.length > 25) {
-                                        return label.substr(0, 25) + '...';
-                                    }
-                                    return label;
-                                }
-                            }
+                            grid: { display: false },
+                            ticks: { font: { size: 13 } }
                         }
                     }
                 }
             });
         }
 
-        // Initialize
-        updateChart();
+        // Инициализация при загрузке страницы
+        window.onload = updateChart;
     </script>
 </body>
 </html>
-"""
-
-import json
-json_data = json.dumps(data_export, ensure_ascii=False)
-html_output = html_template.replace("DATA_PLACEHOLDER", json_data)
-
-# Because output size might be large, I will save it as a file and also print the key parts.
-with open("visualizer.html", "w", encoding="utf-8") as f:
-    f.write(html_output)
-
-print("HTML generated.")
